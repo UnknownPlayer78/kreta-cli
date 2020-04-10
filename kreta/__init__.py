@@ -167,7 +167,7 @@ def main(argv):
                 day = 0
             kreta.print_lessons(day=day)
 
-    elif command == "summary":
+    elif command == "averages":
         log([{"text": "ERROR: ", "color": "red"}, {"text": "not implemented"}])
         exit(0)
 
