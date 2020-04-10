@@ -137,7 +137,7 @@ class API:
 
     def get_message(self, uid):
         headers = self.headers
-        headers['Authorization'] = f'bearer {self.config["token"]}'
+        headers['Authorization'] = f'bearer {self.auth_token}'
 
         r = http.get(self.route.messages + str(uid), headers=headers)
         self.auth_check(r)

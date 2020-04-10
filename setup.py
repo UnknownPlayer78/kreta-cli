@@ -9,7 +9,7 @@ setup(
     name='kreta',
     version=kreta.__version__,
     description="KRÉTA Ellenörző CLI",
-    long_description="",
+    long_description=desc,
     author='UnknownPlayer78',
     author_email='',
     url='https://github.com/UnknownPlayer78/kreta-cli',
