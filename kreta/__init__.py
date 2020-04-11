@@ -3,7 +3,7 @@ from .core import Kreta
 from .utils import splash, log
 
 
-__version__ = "0.0.9"
+__version__ = "0.1.0"
 __help__ = """\
 usage: kreta [--version] [--help] <command>
 
@@ -168,8 +168,7 @@ def main(argv):
             kreta.print_lessons(day=day)
 
     elif command == "averages":
-        log([{"text": "ERROR: ", "color": "red"}, {"text": "not implemented"}])
-        exit(0)
+        kreta.print_averages()
 
     else:
         log([{"text": "ERROR: ", "color": "red"}, {

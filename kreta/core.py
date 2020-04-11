@@ -212,7 +212,7 @@ class Kreta:
                 subject = absence["Subject"]
 
             if absence["DelayTimeMinutes"] > 0:
-                minutes = str(absence["DelayTimeMinutes"]) + " perc"
+                minutes = str(absence["DelayTimeMinutes"]) + " minutes"
             else:
                 minutes = ""
 
@@ -275,6 +275,51 @@ class Kreta:
 
         if not show_all:
             log({"text": f"Showing page: {page}/{pages}", "dark": True})
+
+    def print_averages(self):
+        data = self.api.get_user_data(ami=False)
+        averages = data["SubjectAverages"]
+        grades = data["Evaluations"]
+
+        class_averages = {}
+        for average in averages:
+            if average["ClassValue"]:
+                val = str(average["ClassValue"])
+            else:
+                val = "-"
+
+            class_averages[average["Subject"]] = val
+
+        grades_subject = {}
+        for grade in grades:
+            subject = grade["Subject"]
+
+            if not subject:
+                continue
+
+            if not subject in grades_subject.keys():
+                grades_subject[subject] = []
+            
+            if grade["IsAtlagbaBeleszamit"]:
+                grades_subject[subject].append(grade["NumberValue"])
+        
+        log([{"text": "Avg.", "bold": True}, {"text": "Class", "bold": True}, {"text": "Subject", "bold": True}], 
+            table=True, table_template="{:<13}{:<14}{}")
+
+        for subject in grades_subject:
+            subject_grades = grades_subject[subject]
+            class_avg = class_averages[subject]
+
+            avg = sum(subject_grades) / len(subject_grades)
+            avg = int(avg * 100) / 100
+
+            if avg < 2:
+                avg_color = "red"
+            else:
+                avg_color = "magenta"
+
+            log([{"text": str(avg)+" ", "color": avg_color}, {"text": class_avg+" ", "color": "cyan"}, {"text": subject, "color": "blue"}], 
+            table=True, table_template="{:<14}{:<15}{}")
 
     def print_grades(self, page=1, show_all=False):
         data = self.api.get_user_data()

@@ -6,13 +6,14 @@ from .utils import log
 class Route:
     ENDPOINTS = {
         "token": "/idp/api/v1/Token",
-        "user_data": "/mapi/api/v1/StudentAmi",
-        "tests": "/mapi/api/v1/BejelentettSzamonkeresAmi",
+        "user_data": "/mapi/api/v1/Student",
+        "tests": "/mapi/api/v1/BejelentettSzamonkeres",
         "messages": "/integration-kretamobile-api/v1/kommunikacio/postaladaelemek/",
-        "lessons": "/mapi/api/v1/LessonAmi",
+        "lessons": "/mapi/api/v1/Lesson",
         "events": "/mapi/api/v1/EventAmi",
         "homeworks_user": "/mapi/api/v1/HaziFeladat/TanuloHaziFeladatLista/",
         "homeworks_teacher": "/mapi/api/v1/HaziFeladat/TanarHaziFeladat/",
+        "averages": "/mapi/api/v1/TantargyiAtlagAmi"
     }
 
     def __init__(self, institute_code):
@@ -51,6 +52,10 @@ class Route:
     def homeworks_teacher(self):
         return self.base + self.ENDPOINTS["homeworks_teacher"]
 
+    @property
+    def averages(self):
+        return self.base + self.ENDPOINTS["averages"]
+
 
 class API:
     client_id = "919e0c1c-76a2-4646-a2fb-7085bbbf3c56"
@@ -81,8 +86,8 @@ class API:
             payload = f'institute_code={self.config["institute_code"]}&userName={self.config["username"]}' + \
                 f'&grant_type=password&client_id={self.client_id}&password={self.config["password"]}'
         except Exception as e:
-            log([{"text": "ERROR: ", "color": "red"}, {
-                "text": f"{e} is not configured"}])
+            log([{"text": "ERROR: ", "color": "red"},
+                 {"text": f"{e} is not configured"}])
             exit(1)
 
         headers = self.headers
@@ -105,67 +110,57 @@ class API:
     def auth_check(self, r):
         if r.text == "invalid_grant":
             log([{"text": "ERROR: ", "color": "red"},
-                 {"text": "authentication faliure"}])
+                 {"text": "authentication faliure (try to login again)"}])
             exit(1)
 
-    def get_user_data(self):
+    def get_api(self, endpoint, args="", ami=False):
         headers = self.headers
         headers['Authorization'] = f'bearer {self.auth_token}'
 
-        r = http.get(self.route.user_data, headers=headers)
+        if ami:
+            api = "Ami"
+        else:
+            api = ""
+
+        try:
+            r = http.get(endpoint + api + str(args), headers=headers)
+        except UnicodeError:
+            log([{"text": "ERROR: ", "color": "red"}, {
+                "text": "'institute_code' is not configured"}])
+            exit(1)
+        except http.exceptions.ConnectionError:
+            log([{"text": "ERROR: ", "color": "red"}, {
+                "text": "could not connect to " + self.institute_code + ".e-kreta.hu"}])
+            exit(1)
+
         self.auth_check(r)
 
-        return r.json()
+        return r
 
-    def get_tests(self):
-        headers = self.headers
-        headers['Authorization'] = f'bearer {self.auth_token}'
+    def get_user_data(self, ami=True):
+        return self.get_api(self.route.user_data, ami=ami).json()
 
-        r = http.get(self.route.tests, headers=headers)
-        self.auth_check(r)
-
-        return r.json()
+    def get_tests(self, ami=True):
+        return self.get_api(self.route.tests, ami=ami).json()
 
     def get_messages(self):
-        headers = self.headers
-        headers['Authorization'] = f'bearer {self.auth_token}'
-
-        r = http.get(self.route.messages + "sajat", headers=headers)
-        self.auth_check(r)
-
-        return r.json()
+        return self.get_api(self.route.messages, args="sajat").json()
 
     def get_message(self, uid):
-        headers = self.headers
-        headers['Authorization'] = f'bearer {self.auth_token}'
+        return self.get_api(self.route.messages, args=uid).json()
 
-        r = http.get(self.route.messages + str(uid), headers=headers)
-        self.auth_check(r)
-
-        return r.json()
-
-    def get_lessons(self, from_date, to_date):
-        headers = self.headers
-        headers['Authorization'] = f'bearer {self.auth_token}'
-
+    def get_lessons(self, from_date, to_date, ami=True):
         timestamp = f"?fromDate={from_date[0]}-{from_date[1]}-{from_date[2]}" + \
             f"&toDate={to_date[0]}-{to_date[1]}-{to_date[2]}"
 
-        r = http.get(self.route.lessons + timestamp, headers=headers)
-        self.auth_check(r)
-
-        return r.json()
+        return self.get_api(self.route.lessons, args=timestamp, ami=ami).json()
 
     def get_homework(self, uid):
-        headers = self.headers
-        headers['Authorization'] = f'bearer {self.auth_token}'
-
-        r = http.get(self.route.homeworks_user + str(uid), headers=headers)
-        self.auth_check(r)
-        homeworks = r.json()
-
-        r = http.get(self.route.homeworks_teacher + str(uid), headers=headers)
-        self.auth_check(r)
-        homeworks.append(r.json())
+        homeworks = self.get_api(self.route.homeworks_user, args=uid).json()
+        homeworks.append(self.get_api(
+            self.route.homeworks_teacher, args=uid).json())
 
         return homeworks
+
+    def get_averages(self):
+        return self.get_api(self.route.averages).json()
